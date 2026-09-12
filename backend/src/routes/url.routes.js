@@ -53,7 +53,7 @@ router.post("/api/shorten", async (req, res) => {
         `;
 
         res.json({
-            shortUrl: `http://localhost:${PORT}/${code}`
+            shortUrl: `http://16.171.140.124:${PORT}/${code}`
         });
 
     } catch (error) {
