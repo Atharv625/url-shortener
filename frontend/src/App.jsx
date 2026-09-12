@@ -4,33 +4,35 @@ import { useState, useRef } from "react";
 
 // Point this at your API. Adjust the fetch call in createTicket() below
 // if your endpoint expects a different request/response shape.
-const API_BASE = import.meta.env.VITE_API_BASE_URL + "/api";
-
+const API_BASE = "http://16.171.140.124:8080/api";
 async function createShortLink(originalUrl) {
-  const res = await fetch(`${API_BASE}/shorten`, {
+  const res = await fetch(`${API_BASE}/api/shorten`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url: originalUrl }),
   });
 
   if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.error || `Server responded with ${res.status}`);
+    const message = await res.text().catch(() => "");
+    throw new Error(message || `Server responded with ${res.status}`);
   }
 
-  const { shortUrl } = await res.json();
-  // The API only returns shortUrl (e.g. "https://yourapp.com/aB3xQ9").
-  // Derive the code from the last path segment for display purposes.
-  const code = shortUrl.split("/").pop();
-  return { code, shortUrl };
+  const data = await res.json();
+  // Expected shape: { code: "abc123", shortUrl: "https://snip.link/abc123" }
+  // Adjust these field names to match your API's actual response.
+  return {
+    code: data.code ?? data.shortCode ?? data.slug,
+    shortUrl: data.shortUrl ?? data.short_url ?? data.url,
+  };
 }
 
-// The current backend has no DELETE /api/links/:code route, so "voiding"
-// a ticket only removes it from this browser's view — the row still
-// exists server-side. Add a delete route (e.g. DELETE /api/urls/:code)
-// and swap this in once it exists.
-function deleteShortLink() {
-  return Promise.resolve();
+async function deleteShortLink(code) {
+  const res = await fetch(`${API_BASE}/links/${encodeURIComponent(code)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to void ticket (${res.status})`);
+  }
 }
 
 // --- helpers -----------------------------------------------------------
@@ -101,7 +103,10 @@ export default function App() {
     const short = ticket.shortUrl ?? `snip.link/${ticket.code}`;
     navigator.clipboard?.writeText(short).catch(() => {});
     setCopiedId(ticket.id);
-    window.setTimeout(() => setCopiedId((id) => (id === ticket.id ? null : id)), 1600);
+    window.setTimeout(
+      () => setCopiedId((id) => (id === ticket.id ? null : id)),
+      1600,
+    );
   }
 
   async function handleVoid(ticket) {
@@ -123,16 +128,38 @@ export default function App() {
       <header style={styles.header}>
         <div style={styles.stamp} aria-hidden="true">
           <svg viewBox="0 0 64 64" width="30" height="30" fill="none">
-            <circle cx="32" cy="32" r="29" stroke="currentColor" strokeWidth="2.5" />
-            <circle cx="32" cy="32" r="21" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 4" />
-            <text x="32" y="38" textAnchor="middle" fontSize="18" fontFamily="'Fraunces', serif" fill="currentColor">
+            <circle
+              cx="32"
+              cy="32"
+              r="29"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            />
+            <circle
+              cx="32"
+              cy="32"
+              r="21"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeDasharray="3 4"
+            />
+            <text
+              x="32"
+              y="38"
+              textAnchor="middle"
+              fontSize="18"
+              fontFamily="'Fraunces', serif"
+              fill="currentColor"
+            >
               §
             </text>
           </svg>
         </div>
         <div>
           <h1 style={styles.title}>Claim Desk</h1>
-          <p style={styles.subtitle}>Hand in a long link, walk away with a short claim ticket.</p>
+          <p style={styles.subtitle}>
+            Hand in a long link, walk away with a short claim ticket.
+          </p>
         </div>
       </header>
 
@@ -154,7 +181,11 @@ export default function App() {
             }}
             style={styles.input}
           />
-          <button type="submit" style={styles.submitButton} disabled={submitting}>
+          <button
+            type="submit"
+            style={styles.submitButton}
+            disabled={submitting}
+          >
             {submitting ? "Stamping…" : "Issue ticket"}
           </button>
         </div>
@@ -169,7 +200,9 @@ export default function App() {
         {tickets.length === 0 ? (
           <div style={styles.empty}>
             <p style={styles.emptyTitle}>No tickets issued yet</p>
-            <p style={styles.emptyBody}>Paste a link above. Your first claim stub will print here.</p>
+            <p style={styles.emptyBody}>
+              Paste a link above. Your first claim stub will print here.
+            </p>
           </div>
         ) : (
           tickets.map((ticket) => (
@@ -216,8 +249,8 @@ function Ticket({ ticket, onCopy, onVoid, copied }) {
           <button type="button" onClick={onCopy} style={styles.stubButton}>
             {copied ? "Copied" : "Copy"}
           </button>
-          <button type="button" onClick={onVoid} style={styles.stubButtonGhost} title="Removes it from this view only — it still exists on the server until a delete route is added.">
-            Hide
+          <button type="button" onClick={onVoid} style={styles.stubButtonGhost}>
+            Void
           </button>
         </div>
       </div>
