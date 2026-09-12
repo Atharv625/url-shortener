@@ -9,8 +9,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "postgres": "^3.4.9"
+    "express-rate-limit": "^8.7.0",
+    "postgres": "^3.4.9",
+    "rate-limit-redis": "^6.0.1",
+    "redis": "^6.2.1"
   }
 }

@@ -1,6 +1,6 @@
 const express = require("express");
 const { sql } = require("../config/db");
-
+const { rateLimiter } = require("../config/redis");
 const {
     encodeBase62,
     decodeBase62
@@ -16,7 +16,7 @@ const PORT=process.env.PORT||3000
 
 
 // Create short URL
-router.post("/api/shorten", async (req, res) => {
+router.post("/api/shorten",rateLimiter, async (req, res) => {
     try {
         const { url } = req.body;
 
@@ -68,7 +68,7 @@ router.post("/api/shorten", async (req, res) => {
 
 
 // Redirect
-router.get("/:code", async (req, res) => {
+router.get("/:code",rateLimiter, async (req, res) => {
     try {
         const { code } = req.params;
 
