@@ -12,7 +12,7 @@ const {
 } = require("../utils/obfuscation");
 
 const router = express.Router();
-
+const PORT=process.env.PORT||3000
 
 // Create short URL
 router.post("/api/shorten", async (req, res) => {
@@ -53,7 +53,7 @@ router.post("/api/shorten", async (req, res) => {
         `;
 
         res.json({
-            shortUrl: `http://localhost:3000/${code}`
+            shortUrl: `http://localhost:${PORT}/${code}`
         });
 
     } catch (error) {
