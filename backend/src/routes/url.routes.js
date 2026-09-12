@@ -14,6 +14,7 @@ const {
 const router = express.Router();
 const PORT=process.env.PORT||3000
 
+
 // Create short URL
 router.post("/api/shorten", async (req, res) => {
     try {
@@ -53,7 +54,7 @@ router.post("/api/shorten", async (req, res) => {
         `;
 
         res.json({
-            shortUrl: `http://16.171.140.124:${PORT}/${code}`
+            shortUrl: `${process.env.BASE_URL}/${code}`
         });
 
     } catch (error) {
