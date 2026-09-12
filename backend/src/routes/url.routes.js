@@ -1,22 +1,20 @@
 const express = require("express");
+const crypto = require("crypto");
+
 const { sql } = require("../config/db");
 const { rateLimiter } = require("../config/redis");
-const {
-    encodeBase62,
-    decodeBase62
-} = require("../utils/base62");
-
-const {
-    obfuscate,
-    deobfuscate
-} = require("../utils/obfuscation");
 
 const router = express.Router();
-const PORT=process.env.PORT||3000
+
+
+// Generate unpredictable short code
+function generateShortCode() {
+    return crypto.randomBytes(6).toString("base64url");
+}
 
 
 // Create short URL
-router.post("/api/shorten",rateLimiter, async (req, res) => {
+router.post("/api/shorten", rateLimiter, async (req, res) => {
     try {
         const { url } = req.body;
 
@@ -26,28 +24,16 @@ router.post("/api/shorten",rateLimiter, async (req, res) => {
             });
         }
 
-        // 1. Get next PostgreSQL ID
-        const result = await sql`
-            SELECT nextval('public.urls_id_seq') AS id
-        `;
+        // Generate random code
+        const code = generateShortCode();
 
-        const id = Number(result[0].id);
-
-        // 2. Obfuscate ID
-        const obfuscatedId = obfuscate(id);
-
-        // 3. Convert obfuscated ID to Base62
-        const code = encodeBase62(obfuscatedId);
-
-        // 4. Insert complete record
+        // Store URL
         await sql`
             INSERT INTO urls (
-                id,
                 short_code,
                 original_url
             )
             VALUES (
-                ${id},
                 ${code},
                 ${url}
             )
@@ -68,34 +54,26 @@ router.post("/api/shorten",rateLimiter, async (req, res) => {
 
 
 // Redirect
-router.get("/:code",rateLimiter, async (req, res) => {
+router.get("/:code", async (req, res) => {
     try {
         const { code } = req.params;
 
-        // 1. Base62 → number
-        const obfuscatedId = decodeBase62(code);
-
-        // 2. Reverse obfuscation
-        const id = deobfuscate(obfuscatedId);
-
-        // 3. Find original URL
         const result = await sql`
             SELECT original_url
             FROM urls
-            WHERE id = ${id}
+            WHERE short_code = ${code}
         `;
 
         if (result.length === 0) {
             return res.status(404).send("URL not found");
         }
 
-        // 4. Redirect
         res.redirect(result[0].original_url);
 
     } catch (error) {
         console.error(error);
 
-        res.status(404).send("Invalid short URL");
+        res.status(500).send("Internal server error");
     }
 });
 
