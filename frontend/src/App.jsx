@@ -4,9 +4,9 @@ import { useState, useRef } from "react";
 
 // Point this at your API. Adjust the fetch call in createTicket() below
 // if your endpoint expects a different request/response shape.
-const API_BASE = "http://16.171.140.124:8080/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 async function createShortLink(originalUrl) {
-  const res = await fetch(`${API_BASE}/shorten`, {
+  const res = await fetch(`${API_BASE}/api/shorten`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url: originalUrl }),
