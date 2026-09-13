@@ -24,23 +24,37 @@ router.post("/api/shorten", rateLimiter, async (req, res) => {
             });
         }
 
-        // Generate random code
-        const code = generateShortCode();
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const code = generateShortCode();
 
-        // Store URL
-        await sql`
-            INSERT INTO urls (
-                short_code,
-                original_url
-            )
-            VALUES (
-                ${code},
-                ${url}
-            )
-        `;
+            try {
+                await sql`
+                    INSERT INTO urls (
+                        short_code,
+                        original_url
+                    )
+                    VALUES (
+                        ${code},
+                        ${url}
+                    )
+                `;
 
-        res.json({
-            shortUrl: `${process.env.BASE_URL}/${code}`
+                return res.json({
+                    shortUrl: `${process.env.BASE_URL}/${code}`
+                });
+
+            } catch (error) {
+                // PostgreSQL unique violation
+                if (error.code === "23505") {
+                    continue;
+                }
+
+                throw error;
+            }
+        }
+
+        return res.status(500).json({
+            error: "Could not generate unique short URL"
         });
 
     } catch (error) {
