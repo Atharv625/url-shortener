@@ -20,7 +20,7 @@ redisClient.connect()
 
 const rateLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    limit: 10,           // 10 requests per minute
+    limit: 20,           // 10 requests per minute
 
     standardHeaders: "draft-7",
     legacyHeaders: false,

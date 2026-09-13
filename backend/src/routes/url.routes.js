@@ -58,21 +58,27 @@ router.get("/:code", async (req, res) => {
     try {
         const { code } = req.params;
 
+       
+
         const result = await sql`
-            SELECT original_url
-            FROM urls
+            UPDATE urls
+            SET click_count = click_count + 1
             WHERE short_code = ${code}
+            RETURNING original_url, click_count
         `;
+
+       
 
         if (result.length === 0) {
             return res.status(404).send("URL not found");
         }
 
+       
+
         res.redirect(result[0].original_url);
 
     } catch (error) {
-        console.error(error);
-
+        console.error("REDIRECT ERROR:", error);
         res.status(500).send("Internal server error");
     }
 });
