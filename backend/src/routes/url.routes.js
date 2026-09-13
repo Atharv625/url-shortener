@@ -24,7 +24,7 @@ router.post("/api/shorten", rateLimiter, async (req, res) => {
             });
         }
 
-        for (let attempt = 0; attempt < 5; attempt++) {
+        while(true) {
             const code = generateShortCode();
 
             try {
